@@ -17,9 +17,9 @@ function lines_from(file)
     return lines
 end
 
-local file = 'washi.config'
-local lines = lines_from(file)
-
-for k, v in pairs(lines) do
-    print(v)
+function read_all(file)
+    local f = assert(io.open(file, "rb"))
+    local content = f:read("*all")
+    f:close()
+    return content
 end
