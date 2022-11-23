@@ -35,14 +35,27 @@ function get_loop(line)
     return loop
 end
 
-function parse_for_loops(html)
-    local loops = {}
+function get_if(line)
+    local statement = {}
+    local is_if_statement = string.match(line, "if[%s]*%(.+%)[%s]*{")
+    if is_if_statement then
+        statement.value = string.match(line, "if[%s]*%((.+)%)[%s]*{")
+    end
+    return statement
+end
+
+function parse_child_blocks(html)
+    local result = {
+        parsed_html = "",
+        blocks = {}
+    }
     local length = 0
     local lines = split(html, "\n")
-    local index = 1
+    local index = 0
     for k, v in pairs(lines) do
         if k > index then
             local loop = get_loop(v)
+            local statement = get_if(v)
             if loop.list_key then
                 local text = ""
                 for i = k + 1, #lines do
@@ -51,32 +64,10 @@ function parse_for_loops(html)
                 loop.html = parse_block(text)
                 index = k + #split(loop.html, "\n") + 1
                 loop.id = random_string(7)
-                loops[length + 1] = loop
+                result.blocks[length + 1] = loop
                 length = length + 1
-            end
-        end
-    end
-    return loops
-end
-
-function get_if(line)
-    local statement = {}
-    local is_if_statement = string.match(line, "if[%s]*%(.+%)[%s]*{")
-    if is_if_statement then
-        statement.value = string.match(line, "if[%s]*%(([.]+)%)[%s]*{")
-    end
-    return statement
-end
-
-function parse_ifs(html)
-    local ifs = {}
-    local length = 0
-    local lines = split(html, "\n")
-    local index = 1
-    for k, v in pairs(lines) do
-        if k > index then
-            local statement = get_if(v)
-            if statement.value then
+                result.parsed_html = result.parsed_html .. "<div id=\"" .. loop.id .. "\"></div>" .. "\n"
+            elseif statement.value then
                 local text = ""
                 for i = k + 1, #lines do
                     text = text .. lines[i] .. "\n"
@@ -84,27 +75,23 @@ function parse_ifs(html)
                 statement.html = parse_block(text)
                 index = k + #split(statement.html, "\n") + 1
                 statement.id = random_string(7)
-                ifs[length + 1] = statement
+                result.blocks[length + 1] = statement
                 length = length + 1
+                result.parsed_html = result.parsed_html .. "<div id=\"" .. statement.id .. "\"></div>" .. "\n"
+            else
+                result.parsed_html = result.parsed_html .. v .. "\n"
             end
         end
     end
-    return ifs
+    return result
 end
 
 function parse_html(block, html)
-    block.loops = parse_for_loops(html)
+    local result = parse_child_blocks(html)
+    block.children = result.blocks
+    block.parsed_html = result.parsed_html
 
-    -- TODO(Jesper): Don't return if statements that are inside another block.
-    block.ifs = parse_ifs(html)
-    for k, v in pairs(block.loops) do
-        --print("FOR:")
-        --print(v.html .. "\n\n")
-        parse_html(v, v.html)
-    end
-    for k, v in pairs(block.ifs) do
-        --print("IF:")
-        --print(v.html .. "\n\n")
+    for k, v in pairs(block.children) do
         parse_html(v, v.html)
     end
 end
@@ -123,9 +110,15 @@ for k, v in pairs(components) do
     js = read_all(v.js)
     html = read_all(v.html)
 
+    --[[
+        TODO:
+        - Parse values {{ value }}.
+        - Add blocks to javascript file.
+    ]]--
+
     local block = {}
     parse_html(block, html)
-    --parse_html(block, "<h2>Item!!!</h2>")
+    print(block.parsed_html)
 
     ifs = {}
 end
