@@ -86,16 +86,23 @@ function parse_child_blocks(html)
     return result
 end
 
-function parse_html(block, html)
+function parse_html(block, html, root)
     local result = parse_child_blocks(html)
     block.children = result.blocks
     block.parsed_html = result.parsed_html
 
     for k, v in pairs(block.children) do
-        parse_html(v, v.html)
+        parse_html(v, v.html, root)
+        if v.list_key then
+            --local js_loop = "let " .. v.id .. " = { html: `" .. string.gsub(v.parsed_html, "\n", "") .. "`, id: '" .. v.id .. "', valueKey: '" .. v.value_key .. "', values: boundValues['" .. v.list_key .. "'] };"
+            table.insert(root.js_loops, v)
+        elseif v.value then
+            --local js_if = "let " .. v.id .. " = { id: '" .. v.id .. "', condition: '" .. v.value .. "' };"
+            table.insert(root.js_ifs, v)
+        end
     end
 end
-
+--älskar dig!
 local file = 'washi.config'
 local lines = lines_from(file)
 
@@ -107,18 +114,43 @@ for k, v in pairs(lines) do
 end
 
 for k, v in pairs(components) do
-    js = read_all(v.js)
-    html = read_all(v.html)
+    local html = read_all(v.html)
 
     --[[
         TODO:
-        - Parse values {{ value }}.
         - Add blocks to javascript file.
     ]]--
 
-    local block = {}
-    parse_html(block, html)
-    print(block.parsed_html)
+    local block = { js = "", js_loops = {}, js_ifs = {} }
+    block.js = block.js .. "let boundValues = {};\n"
 
-    ifs = {}
+    parse_html(block, html, block)
+
+    local loops_str = ""
+    for i = 1, #block.js_loops do
+        local loop = block.js_loops[i]
+        loops_str = loops_str .. loop.id .. ", "
+        block.js = block.js .. "let " .. loop.id .. " = { html: `" .. string.gsub(loop.parsed_html, "\n", "") .. "`, id: '" .. loop.id .. "', valueKey: '" .. loop.value_key .. "', values: boundValues['" .. loop.list_key .. "'] };" .. "\n"
+    end
+    block.js = block.js .. "let loops = [ " .. loops_str .. "];\n\n"
+
+    local ifs_str = ""
+    for i = 1, #block.js_ifs do
+        local statement = block.js_ifs[i]
+        ifs_str = ifs_str .. statement.id .. ", "
+        block.js = block.js .. "let " .. statement.id .. " = { id: '" .. statement.id .. "', condition: '" .. statement.value .. "' };" .. "\n"
+    end
+    block.js = block.js .. "let ifs = [ " .. ifs_str .. "];\n"
+
+    if not exists("../build") then
+        os.execute('mkdir "../build"')
+    end
+
+    local html_file = io.open("../build/index.html", "w")
+    io.output(html_file)
+    io.write(block.parsed_html)
+
+    local js_file = io.open("../build/main.js", "w")
+    io.output(js_file)
+    io.write(block.js)
 end
