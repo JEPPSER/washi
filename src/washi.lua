@@ -94,10 +94,8 @@ function parse_html(block, html, root)
     for k, v in pairs(block.children) do
         parse_html(v, v.html, root)
         if v.list_key then
-            --local js_loop = "let " .. v.id .. " = { html: `" .. string.gsub(v.parsed_html, "\n", "") .. "`, id: '" .. v.id .. "', valueKey: '" .. v.value_key .. "', values: boundValues['" .. v.list_key .. "'] };"
             table.insert(root.js_loops, v)
         elseif v.value then
-            --local js_if = "let " .. v.id .. " = { id: '" .. v.id .. "', condition: '" .. v.value .. "' };"
             table.insert(root.js_ifs, v)
         end
     end
@@ -115,11 +113,7 @@ end
 
 for k, v in pairs(components) do
     local html = read_all(v.html)
-
-    --[[
-        TODO:
-        - Add blocks to javascript file.
-    ]]--
+    local js_org = read_all(v.js)
 
     local block = { js = "", js_loops = {}, js_ifs = {} }
     block.js = block.js .. "let boundValues = {};\n"
@@ -130,7 +124,7 @@ for k, v in pairs(components) do
     for i = 1, #block.js_loops do
         local loop = block.js_loops[i]
         loops_str = loops_str .. loop.id .. ", "
-        block.js = block.js .. "let " .. loop.id .. " = { html: `" .. string.gsub(loop.parsed_html, "\n", "") .. "`, id: '" .. loop.id .. "', valueKey: '" .. loop.value_key .. "', values: boundValues['" .. loop.list_key .. "'] };" .. "\n"
+        block.js = block.js .. "let " .. loop.id .. " = { html: `" .. string.gsub(loop.parsed_html, "\n", "") .. "`, id: '" .. loop.id .. "', valueKey: '" .. loop.value_key .. "', list: boundValues['" .. loop.list_key .. "'] };" .. "\n"
     end
     block.js = block.js .. "let loops = [ " .. loops_str .. "];\n\n"
 
@@ -146,11 +140,16 @@ for k, v in pairs(components) do
         os.execute('mkdir "../build"')
     end
 
-    local html_file = io.open("../build/index.html", "w")
+    local js_file_name = split(v.js, "/")[#split(v.js, "/")]
+    local html_file_name = split(v.html, "/")[#split(v.html, "/")]
+
+    local html_file = io.open("../build/" .. html_file_name, "w")
     io.output(html_file)
     io.write(block.parsed_html)
 
-    local js_file = io.open("../build/main.js", "w")
+    local js_file = io.open("../build/" .. js_file_name, "w")
     io.output(js_file)
     io.write(block.js)
+
+    io.close()
 end

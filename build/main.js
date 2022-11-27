@@ -1,8 +1,8 @@
 let boundValues = {};
-let zbjedpo = { html: `<h2>Item!!!</h2>`, id: 'zbjedpo', valueKey: 'num', values: boundValues['numbers'] };
-let qmabwbn = { html: `<div><div id="zbjedpo"></div><p>{{ item.text }}</p></div>`, id: 'qmabwbn', valueKey: 'item', values: boundValues['items'] };
-let mdkoipl = { html: `<h3>{{ yo.hej }}</h3><div id="sysqjen"></div>`, id: 'mdkoipl', valueKey: 'yo', values: boundValues['yolo'] };
-let loops = [ zbjedpo, qmabwbn, mdkoipl, ];
+let txbdlyj = { html: `<h2>Item!!!</h2>`, id: 'txbdlyj', valueKey: 'num', list: boundValues['numbers'] };
+let ipquxwh = { html: `<div><div id="txbdlyj"></div><p>{{ item.text }}</p></div>`, id: 'ipquxwh', valueKey: 'item', list: boundValues['items'] };
+let eigialj = { html: `<h3>{{ yo.hej }}</h3><div id="fmhihge"></div>`, id: 'eigialj', valueKey: 'yo', list: boundValues['yolo'] };
+let loops = [ txbdlyj, ipquxwh, eigialj, ];
 
-let sysqjen = { id: 'sysqjen', condition: 'yo.hej' };
-let ifs = [ sysqjen, ];
+let fmhihge = { id: 'fmhihge', condition: 'yo.hej' };
+let ifs = [ fmhihge, ];
