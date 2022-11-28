@@ -12,12 +12,26 @@ class BoundValueList {
 
     add(value) {
         this.values.push(new BoundValue(value));
-        washiRender(blocks, null);
+        washiRender(blocks);
+    }
+
+    deleteAt(index) {
+        this.values[index].delete();
+    }
+
+    set(values) {
+        for (let value of this.values) {
+            value.state = "delete";
+        }
+        for (let value of values) {
+            this.values.push(new BoundValue(value));
+        }
+        washiRender(blocks);
     }
 }
 
 class BoundValue {
-    constructor(content, id = null, state = "add") {
+    constructor(content, id = null, state = "none") {
         this.content = content;
         this.state = state;
         this.id = id;
@@ -28,13 +42,12 @@ class BoundValue {
 
     delete() {
         this.state = "delete";
-        washiRender(blocks, null);
+        washiRender(blocks);
     }
 
-    update(content) {
+    set(content) {
         this.content = content;
-        this.state = "update";
-        washiRender(blocks, null);
+        washiRender(blocks);
     }
 
     makeid(length) {
@@ -59,19 +72,27 @@ setInterval(() => {
     var content = boundValues["yolo"].values[0].content;
     content.hej += "o";
     //boundValues["yolo"].values[0].update(content);
-    //boundValues["items"].add({text: new Date().getTime()})
+    //boundValues["items"].add({text: new Date().getTime()});
+    //boundValues["numbers"].add(new Date().getTime());
+    //boundValues["items"].add({text: new Date().getTime()});
+    /*let list = [];
+    for (let i = 0; i < 3; i++) {
+        list.push({text: new Date().getTime() + i});
+    }
+    boundValues["items"].set(list);*/
+    boundValues["items"].values[1].set({ text: new Date().getTime() });
 }, 1000);
 
 let fzxxzbs = {
     html: `<div><div id="ukxmijo"></div><p>{{ item.text }}</p></div>`, id: 'fzxxzbs', valueKey: 'item', list: boundValues['items'],
     blocks: [
-        { html: `<h2>Item!!!</h2>`, id: 'ukxmijo', valueKey: 'num', list: boundValues['numbers'] }
+        { html: `<h2>Item!!!</h2>{{ item.text }}`, id: 'ukxmijo', valueKey: 'num', list: boundValues['numbers'] }
     ]
 };
 let ccimidi = {
     html: `<h3>{{ yo.hej }}</h3><div id="aeufgtu"></div>`, id: 'ccimidi', valueKey: 'yo', list: boundValues['yolo'],
     blocks: [
-        { id: 'aeufgtu', condition: 'yo.hej.length % 2 == 0', html: '{{ yo.hello }}' }
+        { id: 'aeufgtu', condition: /*'yo.hej.length % 2 == 0'*/'true', html: '{{ yo.hej }}' }
     ]
 };
 let blocks = [ fzxxzbs, ccimidi ];
@@ -80,7 +101,7 @@ washiInit();
 
 function washiInit() {
     washiCreateValueElements(blocks);
-    washiRender(blocks, null);
+    washiRender(blocks);
 }
 
 function washiCreateValueElements(blocks) {
@@ -99,6 +120,62 @@ function washiCreateValueElements(blocks) {
     }
 }
 
+function washiRenderIfs(blocks, parent) {
+    parent = parent ? parent : document;
+
+    // Blocks
+    for (let block of blocks) {
+        let element = parent.querySelector("#" + block.id);
+
+        if (block.condition) {
+
+        }
+
+        // Loops
+        if (block.list) {
+            /*for (let value of block.list.values) {
+                let valueElem = element.querySelector("#" + value.id);
+                if (valueElem) {
+                    let children = valueElem.querySelectorAll("span");
+                    for (let child of children) {
+                        child.id = child.id.replace(block.valueKey, value.id);
+                    }
+                }
+
+                if (block.blocks) {
+                    washiRenderValues(block.blocks, valueElem);
+                }
+            }*/
+        }
+    }
+}
+
+function washiRenderValues(blocks, parent) {
+    parent = parent ? parent : document;
+
+    // Blocks
+    for (let block of blocks) {
+        let element = parent.querySelector("#" + block.id);
+
+        // Loops
+        if (block.list) {
+            for (let value of block.list.values) {
+                let valueElem = element.querySelector("#" + value.id);
+                if (valueElem) {
+                    let children = valueElem.querySelectorAll("span");
+                    for (let child of children) {
+                        child.id = child.id.replace(block.valueKey, value.id);
+                    }
+                }
+
+                if (block.blocks) {
+                    washiRenderValues(block.blocks, valueElem);
+                }
+            }
+        }
+    }
+}
+
 function washiInnerRender(blocks, parent) {
     parent = parent ? parent : document;
 
@@ -108,8 +185,7 @@ function washiInnerRender(blocks, parent) {
 
         // Loops
         if (block.list) {
-            // Add
-            for (let value of block.list.values.filter(v => v.state == 'add')) {
+            for (let value of block.list.values) {
                 let valueElem = element.querySelector("#" + value.id);
                 if (!valueElem) {
                     valueElem = washiCreateElementFromHTML(block.html);
@@ -119,23 +195,18 @@ function washiInnerRender(blocks, parent) {
                         child.id = child.id.replace(block.valueKey, value.id);
                     }
                     element.appendChild(valueElem);
-                    if (block.blocks) {
-                        washiInnerRender(block.blocks, valueElem);
-                    }
-                }
-            }
-
-            // Remove
-            for (let value of block.list.values.filter(v => v.state == 'delete')) {
-                var valueElem = element.querySelector("#" + value.id);
-                if (valueElem) {
+                } else if (value.state == 'delete') {
                     element.removeChild(valueElem);
+                }
+
+                if (block.blocks) {
+                    washiInnerRender(block.blocks, valueElem);
                 }
             }
         }
+
         // Ifs
-        else if (false && block.condition) {
-            let elem = parent.getElementById(block.id);
+        else if (block.condition) {
             let show = false;
             try {
                 show = eval(block.condition);
@@ -144,37 +215,45 @@ function washiInnerRender(blocks, parent) {
                 continue;
             }
         
-            if (!show && elem.style.display != "none") {
-                elem.style = "display: none";
-            } else if (show && elem.style.display == "none") {
-                elem.style = "display: initial";
+            if (!show && element.style.display != "none") {
+                element.style = "display: none";
+            } else if (show && element.style.display == "none") {
+                element.style = "display: initial";
             }
-        }
 
-        // Values
-        for (const [key, value] of Object.entries(boundValues)) {
-            if (value.constructor.name == "BoundValue") {
-                if (value.state == "update" || value.state == "add") {
-                    washiUpdateSpans(value);
-                }
-            } else if (value.constructor.name == "BoundValueList") {
-                for (let boundValue of value.values) {
-                    if (boundValue.state == "update" || boundValue.state == "add") {
-                        washiUpdateSpans(boundValue);
-                    }
-                }
-                boundValues[key].values = value.values.filter(v => v.state != "delete");
+            if (!element.innerHTML) {
+                element.innerHTML = block.html;
+            }
+
+            if (block.blocks) {
+                washiInnerRender(block.blocks, valueElem);
             }
         }
     }
 }
 
-function washiRender(blocks, parent) {
-    washiInnerRender(blocks, parent);
+function washiRender(blocks) {
+    washiInnerRender(blocks, null);
+    washiRenderValues(blocks, null);
+
+    // Update values.
+    for (const [key, value] of Object.entries(boundValues)) {
+        if (value.constructor.name == "BoundValue") {
+            washiUpdateSpans(value);
+        } else if (value.constructor.name == "BoundValueList") {
+            for (let boundValue of value.values) {
+                washiUpdateSpans(boundValue);
+            }
+            boundValues[key].values = value.values.filter(v => v.state != "delete");
+        }
+    }
+
+    // Remove deleted values.
     for (const [key, value] of Object.entries(boundValues)) {
         if (value.constructor.name == "BoundValue") {
             value.state = "none";
         } else if (value.constructor.name == "BoundValueList") {
+            value.values = value.values.filter(v => v.state != "delete");
             for (let boundValue of value.values) {
                 boundValue.state = "none";
             }
@@ -186,7 +265,10 @@ function washiUpdateSpans(value) {
     let spans = document.querySelectorAll("span");
     for (let elem of spans) {
         if (elem.id.startsWith(value.id)) {
-            elem.innerHTML = washiGetValue(value.content, elem.id); 
+            let innerValue = washiGetValue(value.content, elem.id);
+            if (elem.innerHTML != innerValue) {
+                elem.innerHTML = innerValue;
+            }
         }
     }
 }
