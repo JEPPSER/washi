@@ -92,7 +92,7 @@ let fzxxzbs = {
 let ccimidi = {
     html: `<h3>{{ yo.hej }}</h3><div id="aeufgtu"></div>`, id: 'ccimidi', valueKey: 'yo', list: boundValues['yolo'],
     blocks: [
-        { id: 'aeufgtu', condition: /*'yo.hej.length % 2 == 0'*/'true', html: '{{ yo.hej }}' }
+        { id: 'aeufgtu', condition: 'yo.hej.length % 2 == 0', html: '{{ yo.hej }}' }
     ]
 };
 let blocks = [ fzxxzbs, ccimidi ];
@@ -116,36 +116,6 @@ function washiCreateValueElements(blocks) {
         }
         if (block.blocks) {
             washiCreateValueElements(block.blocks); 
-        }
-    }
-}
-
-function washiRenderIfs(blocks, parent) {
-    parent = parent ? parent : document;
-
-    // Blocks
-    for (let block of blocks) {
-        let element = parent.querySelector("#" + block.id);
-
-        if (block.condition) {
-
-        }
-
-        // Loops
-        if (block.list) {
-            /*for (let value of block.list.values) {
-                let valueElem = element.querySelector("#" + value.id);
-                if (valueElem) {
-                    let children = valueElem.querySelectorAll("span");
-                    for (let child of children) {
-                        child.id = child.id.replace(block.valueKey, value.id);
-                    }
-                }
-
-                if (block.blocks) {
-                    washiRenderValues(block.blocks, valueElem);
-                }
-            }*/
         }
     }
 }
@@ -176,7 +146,7 @@ function washiRenderValues(blocks, parent) {
     }
 }
 
-function washiInnerRender(blocks, parent) {
+function washiInnerRender(blocks, parent, values) {
     parent = parent ? parent : document;
 
     // Blocks
@@ -185,7 +155,10 @@ function washiInnerRender(blocks, parent) {
 
         // Loops
         if (block.list) {
+            let i = 0;
             for (let value of block.list.values) {
+                let newValues = [...values];
+                newValues.push({ key: block.valueKey, value: value.content });
                 let valueElem = element.querySelector("#" + value.id);
                 if (!valueElem) {
                     valueElem = washiCreateElementFromHTML(block.html);
@@ -200,8 +173,9 @@ function washiInnerRender(blocks, parent) {
                 }
 
                 if (block.blocks) {
-                    washiInnerRender(block.blocks, valueElem);
+                    washiInnerRender(block.blocks, valueElem, newValues);
                 }
+                i++;
             }
         }
 
@@ -209,7 +183,12 @@ function washiInnerRender(blocks, parent) {
         else if (block.condition) {
             let show = false;
             try {
-                show = eval(block.condition);
+                let valuesStr = "";
+                for (let value of values) {
+                    valuesStr += "let " + value.key + " = " + JSON.stringify(value.value) + "\n";
+                }
+                let code = valuesStr + block.condition;
+                show = eval(code);
             } catch (e) {
                 console.log(e);
                 continue;
@@ -226,14 +205,23 @@ function washiInnerRender(blocks, parent) {
             }
 
             if (block.blocks) {
-                washiInnerRender(block.blocks, valueElem);
+                washiInnerRender(block.blocks, valueElem, values);
             }
         }
     }
 }
 
 function washiRender(blocks) {
-    washiInnerRender(blocks, null);
+    let values = [];
+    for (const [key, value] of Object.entries(boundValues)) {
+        if (value.constructor.name == "BoundValue") {
+            values.push({ key: key, value: value.content });
+        } else if (value.constructor.name == "BoundValueList") {
+            values.push({ key: key, value: value.values });
+        }
+    }
+
+    washiInnerRender(blocks, null, values);
     washiRenderValues(blocks, null);
 
     // Update values.
