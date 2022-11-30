@@ -111,12 +111,12 @@ function washiInnerRender(blocks, parent, values) {
         
             if (!show && element.style.display != "none") {
                 element.style = "display: none";
+                element.innerHTML = "";
             } else if (show && element.style.display == "none") {
                 element.style = "display: initial";
-            }
-
-            if (!element.innerHTML) {
-                element.innerHTML = block.html;
+                if (!element.innerHTML) {
+                    element.innerHTML = block.html;
+                }
             }
 
             if (block.blocks) {
