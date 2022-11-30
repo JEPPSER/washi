@@ -93,13 +93,25 @@ function parse_html(block, html, root)
 
     for k, v in pairs(block.children) do
         parse_html(v, v.html, root)
-        if v.list_key then
-            table.insert(root.js_loops, v)
-        elseif v.value then
-            table.insert(root.js_ifs, v)
-        end
     end
 end
+
+function get_js_block(block)
+    local str = ""
+    if block.value then
+        str = "{ html: `" .. block.parsed_html .. "`, id: '" .. block.id .. "', condition: '" .. block.value .. "', blocks: [\n"
+    elseif block.value_key then
+        str = "{ html: `" .. block.parsed_html .. "`, id: '" .. block.id .. "', valueKey: '" .. block.value_key .. "', list: boundValues['" .. block.list_key .. "'], blocks: [\n"
+    end
+
+    for k, v in pairs(block.children) do
+        str = str .. get_js_block(v)
+    end
+    str = str .. "] }"
+
+    return str
+end
+
 --älskar dig!
 local file = 'washi.config'
 local lines = lines_from(file)
@@ -114,27 +126,23 @@ end
 for k, v in pairs(components) do
     local html = read_all(v.html)
     local js_org = read_all(v.js)
+    local washi_js = read_all("washi.js")
+    local bound_value = read_all("bound_value.js")
 
-    local block = { js = "", js_loops = {}, js_ifs = {} }
-    block.js = block.js .. "let boundValues = {};\n"
+    local block = { js = "" }
 
     parse_html(block, html, block)
 
-    local loops_str = ""
-    for i = 1, #block.js_loops do
-        local loop = block.js_loops[i]
-        loops_str = loops_str .. loop.id .. ", "
-        block.js = block.js .. "let " .. loop.id .. " = { html: `" .. string.gsub(loop.parsed_html, "\n", "") .. "`, id: '" .. loop.id .. "', valueKey: '" .. loop.value_key .. "', list: boundValues['" .. loop.list_key .. "'] };" .. "\n"
+    local blockStr = "let blocks = [ "
+    for i = 1, #block.children do
+        local child = block.children[i]
+        block.js = block.js .. "let " .. child.id .. " = \n" .. get_js_block(child) .. ";\n"
+        blockStr = blockStr .. child.id .. ", "
     end
-    block.js = block.js .. "let loops = [ " .. loops_str .. "];\n\n"
+    blockStr = blockStr .. " ];"
+    block.js = block.js .. blockStr;
 
-    local ifs_str = ""
-    for i = 1, #block.js_ifs do
-        local statement = block.js_ifs[i]
-        ifs_str = ifs_str .. statement.id .. ", "
-        block.js = block.js .. "let " .. statement.id .. " = { id: '" .. statement.id .. "', condition: '" .. statement.value .. "' };" .. "\n"
-    end
-    block.js = block.js .. "let ifs = [ " .. ifs_str .. "];\n"
+    block.js = bound_value .. "\n\n" .. js_org .. "\n\n" .. block.js .. "\n\n" .. washi_js
 
     if not exists("../build") then
         os.execute('mkdir "../build"')

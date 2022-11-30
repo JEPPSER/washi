@@ -8,6 +8,14 @@
   </head>
 
   <body>
+    <h1>{{ screenSize }}</h1>
+    if (screenSize > 1000) {
+      <h1>BIIIG</h1>
+    }
+    if (screenSize < 1000) {
+      <h1>small</h1>
+    }
+
     for (let item of items) {
       <div>
         for (let num of numbers) {

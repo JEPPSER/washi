@@ -1,131 +1,34 @@
-class BoundValueList {
-    values = [];
-
-    constructor(values = null) {
-        this.values = [];
-        if (values) {
-            for (let value of values) {
-                this.values.push(new BoundValue(value));
-            }
-        }
-    }
-
-    add(value) {
-        this.values.push(new BoundValue(value));
-        washiRender(blocks);
-    }
-
-    deleteAt(index) {
-        this.values[index].delete();
-    }
-
-    set(values) {
-        for (let value of this.values) {
-            value.state = "delete";
-        }
-        for (let value of values) {
-            this.values.push(new BoundValue(value));
-        }
-        washiRender(blocks);
-    }
-}
-
-class BoundValue {
-    constructor(content, id = null, state = "none") {
-        this.content = content;
-        this.state = state;
-        this.id = id;
-        if (!this.id) {
-            this.id = this.makeid(7);
-        }
-    }
-
-    delete() {
-        this.state = "delete";
-        washiRender(blocks);
-    }
-
-    set(content) {
-        this.content = content;
-        washiRender(blocks);
-    }
-
-    makeid(length) {
-        var result           = '';
-        var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-        var charactersLength = characters.length;
-        for ( var i = 0; i < length; i++ ) {
-            result += characters.charAt(Math.floor(Math.random() * charactersLength));
-        }
-        return result;
-    }
-}
-
-// NOTE(Jesper): Must be provided by user.
-let boundValues = {
-    "numbers": new BoundValueList([1, 2]),
-    "items": new BoundValueList([{text:"hey"}, {text:"whats"}, {text:"up?"}]),
-    "yolo": new BoundValueList([{hej:"yo"},{hej:"mannen"},{hej:"läget"}])
-};
-
-setInterval(() => {
-    var content = boundValues["yolo"].values[0].content;
-    content.hej += "o";
-    //boundValues["yolo"].values[0].update(content);
-    //boundValues["items"].add({text: new Date().getTime()});
-    //boundValues["numbers"].add(new Date().getTime());
-    //boundValues["items"].add({text: new Date().getTime()});
-    /*let list = [];
-    for (let i = 0; i < 3; i++) {
-        list.push({text: new Date().getTime() + i});
-    }
-    boundValues["items"].set(list);*/
-    boundValues["items"].values[1].set({ text: new Date().getTime() });
-}, 1000);
-
-let fzxxzbs = {
-    html: `<div><div id="ukxmijo"></div><p>{{ item.text }}</p></div>`,
-    id: 'fzxxzbs',
-    valueKey: 'item',
-    list: boundValues['items'],
-    blocks: [
-        {
-            html: `<h2>Item!!!</h2>{{ item.text }}`,
-            id: 'ukxmijo',
-            valueKey: 'num',
-            list: boundValues['numbers']
-        }
-    ]
-};
-let ccimidi = {
-    html: `<h3>{{ yo.hej }}</h3><div id="aeufgtu"></div>`, id: 'ccimidi', valueKey: 'yo', list: boundValues['yolo'],
-    blocks: [
-        {
-            id: 'aeufgtu',
-            condition: 'yo.hej.length % 2 == 0',
-            html: '{{ yo.hej }}'
-        }
-    ]
-};
-let blocks = [ fzxxzbs, ccimidi ];
-
 washiInit();
 
 function washiInit() {
+    let body = document.querySelector("body");
+    body.innerHTML = washiReplaceValues(body.innerHTML);
+    let children = body.querySelectorAll("span");
+    for (let child of children) {
+        for (const [key, value] of Object.entries(boundValues)) {
+            child.id = child.id.replace(key, value.id);
+        }
+    }
+
     washiCreateValueElements(blocks);
     washiRender(blocks);
 }
 
-function washiCreateValueElements(blocks) {
+function washiReplaceValues(html) {
     const regex = /{{\s*\S*\s*}}/g;
-    for (let block of blocks) {
-        const found = block.html.match(regex);
-        if (found) {
-            for (let value of found) {
-                let val = value.replace("{{", "").replace("}}", "").trim();
-                block.html = block.html.replace(value, '<span id="' + val + '"></span>');
-            }
+    const found = html.match(regex);
+    if (found) {
+        for (let value of found) {
+            let val = value.replace("{{", "").replace("}}", "").trim();
+            html = html.replace(value, '<span id="' + val + '"></span>');
         }
+    }
+    return html;
+}
+
+function washiCreateValueElements(blocks) {
+    for (let block of blocks) {
+        block.html = washiReplaceValues(block.html);
         if (block.blocks) {
             washiCreateValueElements(block.blocks); 
         }

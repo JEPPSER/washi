@@ -1,24 +1,16 @@
-class BoundValue {
-    constructor(content, id, state = "add") {
-        this.content = content;
-        this.state = state;
-        this.id = id;
-    }
-
-    delete() {
-        this.state = "delete";
-    }
-
-    update(content) {
-        this.content = content;
-        this.state = "update";
-    }
-}
-
 // Bound values
 let boundValues = {
-    "items": [
-        new BoundValue("hej"),
-        new BoundValue("då")
-    ]
+    "numbers": new BoundValueList([1, 2]),
+    "items": new BoundValueList([{text:"hey"}, {text:"whats"}, {text:"up?"}]),
+    "yolo": new BoundValueList([{hej:"yo"},{hej:"mannen"},{hej:"läget"}]),
+    "screenSize": new BoundValue(window.innerWidth)
 };
+
+addEventListener("resize", (event) => {
+    boundValues["screenSize"].set(event.target.innerWidth);
+});
+
+setInterval(() => {
+    let content = boundValues["yolo"].values[0].content.hej + "o";
+    boundValues["yolo"].values[0].set({hej: content});
+}, 1000);
