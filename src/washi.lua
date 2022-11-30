@@ -66,7 +66,7 @@ function parse_child_blocks(html)
                 loop.id = random_string(7)
                 result.blocks[length + 1] = loop
                 length = length + 1
-                result.parsed_html = result.parsed_html .. "<div id=\"" .. loop.id .. "\"></div>" .. "\n"
+                result.parsed_html = result.parsed_html .. '<div style="display: inherit" id=\"' .. loop.id .. "\"></div>" .. "\n"
             elseif statement.value then
                 local text = ""
                 for i = k + 1, #lines do
@@ -77,7 +77,7 @@ function parse_child_blocks(html)
                 statement.id = random_string(7)
                 result.blocks[length + 1] = statement
                 length = length + 1
-                result.parsed_html = result.parsed_html .. "<div id=\"" .. statement.id .. "\"></div>" .. "\n"
+                result.parsed_html = result.parsed_html .. '<div style="display: inherit" id=\"' .. statement.id .. "\"></div>" .. "\n"
             else
                 result.parsed_html = result.parsed_html .. v .. "\n"
             end

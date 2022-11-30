@@ -190,5 +190,6 @@ function washiGetValue(object, key) {
 function washiCreateElementFromHTML(htmlString) {
     var div = document.createElement('div');
     div.innerHTML = htmlString.trim();
+    div.style = "display: inherit";
     return div;
 }
